@@ -1,0 +1,115 @@
+# Phishing Email Detection Model
+# Install required libraries before running:
+# pip install pandas scikit-learn matplotlib seaborn
+
+import pandas as pd
+import re
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# -----------------------------
+# Sample Dataset
+# -----------------------------
+data = {
+    "email": [
+        "Congratulations! You won a free lottery prize click here",
+        "Your bank account has been suspended verify now",
+        "Meeting scheduled for tomorrow regarding project update",
+        "Please review the attached report and send feedback",
+        "Urgent! Login immediately to avoid account closure",
+        "Win cash rewards now by clicking this suspicious link",
+        "Team lunch planned for Friday afternoon",
+        "Invoice for your recent purchase attached"
+    ],
+    "label": [
+        "Phishing",
+        "Phishing",
+        "Safe",
+        "Safe",
+        "Phishing",
+        "Phishing",
+        "Safe",
+        "Safe"
+    ]
+}
+
+df = pd.DataFrame(data)
+
+# -----------------------------
+# Preprocessing Function
+# -----------------------------
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r"http\\S+", "", text)
+    text = re.sub(r"[^a-zA-Z ]", "", text)
+    return text
+
+df["clean_email"] = df["email"].apply(clean_text)
+
+# -----------------------------
+# Feature Extraction
+# -----------------------------
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df["clean_email"])
+
+y = df["label"]
+
+# -----------------------------
+# Train Test Split
+# -----------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# -----------------------------
+# Train Model
+# -----------------------------
+model = MultinomialNB()
+model.fit(X_train, y_train)
+
+# -----------------------------
+# Predictions
+# -----------------------------
+y_pred = model.predict(X_test)
+
+# -----------------------------
+# Accuracy
+# -----------------------------
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# -----------------------------
+# Classification Report
+# -----------------------------
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# -----------------------------
+# Confusion Matrix
+# -----------------------------
+cm = confusion_matrix(y_test, y_pred)
+
+sns.heatmap(cm, annot=True, fmt="d",
+            xticklabels=["Phishing", "Safe"],
+            yticklabels=["Phishing", "Safe"])
+
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix")
+plt.show()
+
+# -----------------------------
+# Test with New Email
+# -----------------------------
+new_email = ["Click here immediately to claim your free reward"]
+
+new_email_clean = [clean_text(email) for email in new_email]
+new_email_vector = vectorizer.transform(new_email_clean)
+
+prediction = model.predict(new_email_vector)
+
+print("\nNew Email Prediction:", prediction[0])
